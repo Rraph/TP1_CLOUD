@@ -9,4 +9,5 @@ Voici nos deux adresses ip fixes :
 * Ip de Raphaël : 10.33.10.2/24
 
 ### 1.2 Le vagrantfile
-Pour ajouter une disque dur de 10Gb :
+Pour rajouter un disque de 10gb et une interface bridgé nous avons du modifier le VagrantFile.
+Nous avons également du le modifier afin de lancer 5 vagrantfiles en même temps. Tu pourras trouver notre dockerfile [ici](/TP1_CLOUD/sources/Vagrantfile)
