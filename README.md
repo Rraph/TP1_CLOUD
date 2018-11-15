@@ -65,6 +65,10 @@ Sur les deux derniers core, lancez la commande suivant pour générer une nouvel
 docker swarm join-token worker
 ```
 
+### 2.3 Weave Cloud
+
+Q1 : Ce container peut lancer des containers grâce au token généré par la solution lors de l'installation sur l'hôte.
+
 ## 3. NFS
 
 ### 3.1 Prérequis
@@ -84,7 +88,7 @@ Ne pas oublier de mettre à jour le serveur :
 yum update -y && yum upgrade -y
 ```
 
-### 3.2 Installation de NFS Server.
+### 3.2 Installation de NFS Server côté serveur.
 
 Tout d'abord, nous avons installé tout les paquets nfs sur notre serveur :
 
@@ -136,4 +140,62 @@ firewall-cmd --permanent --zone=public --add-service=nfs
 firewall-cmd --permanent --zone=public --add-service=mountd
 firewall-cmd --permanent --zone=public --add-service=rpc-bind
 firewall-cmd --reload
+```
+
+### 3.3 Côté client.
+Nous allons ajouter un ignition dans les fichiers de conf du vagrantfile. Pour ce faire nous avons créer un fichier "config.ign" et nous avons entrer les configs nécessaires à la configuration du NFS côté client.
+
+```
+{
+  "ignition": {
+    "config": {},
+    "timeouts": {},
+    "version": "2.1.0"
+  },
+  "networkd": {},
+  "passwd": {},
+  "storage": {},
+  "systemd": {
+    "units": [
+      {
+        "contents": "[Unit]\nBefore=remote-fs.target\n[Mount]\nWhat=192.168.56.101:/var/partage\nWhere=/var/toto\nType=nfs\n[Install]\nWantedBy=remote-fs.target",
+        "enable": true,
+        "name": "var-www.mount"
+      }
+    ]
+  }
+}
+```
+
+ou 192.168.56.101 est l'adresse du serveur, /var/partage le fichier a partagé et /var/toto le dossier de destination sur les clients coreos.
+
+Faites après un "vagrant up" et vous verrez dès les première ligne la création du dossier /var/toto.
+
+Q2 : Le principe d'un NFS est de partager des fichiers a travers le réseau. Cela permet d'eviter l'achat d'un NAS qui peut être plus cher que cette configuration. Les limites que cet outil peut atteindre est la limite de stockage d'un petit serveur comme celui ci.
+
+Q3 : Nous pourrions tout mettre dans le vagrantfile afin d'automatiser tout le déploiement au démarrage.
+
+
+## 4. Registry
+
+Nous monttons donc un docker Registry.
+
+Nous nous rendons sur le core-01 et lançons la commande suivante pour créer un nouveau registre.
+
+```
+docker service create --name registry --publish published=5000,target=5000 registry:2
+```
+
+Ce registre est joignable depuis tous les coreos que nous avons créer.
+
+Nous pouvons donc pull et push des images sur et depuis notre registre pour avoir accès plus rapidement à nos images.
+
+Lorsqu'on curl sur les hôtes on a un retour {} prouvant que tout fonctionne.
+
+```
+core@core-01 ~ $ curl 127.0.0.1/v2/
+core@core-01 ~ $ {}
+
+core@core-02 ~ $ curl 127.0.0.1/v2/
+core@core-02 ~ $ {}
 ```
